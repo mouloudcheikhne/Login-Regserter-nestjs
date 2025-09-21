@@ -6,7 +6,11 @@ import { RegesterDto } from './DTO/regesterDto';
 import * as bcrypt from 'bcrypt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { JwtService } from '@nestjs/jwt';
+interface JwtPayload {
+  id: number;
 
+  // autres champs selon ton JWT
+}
 @Injectable()
 export class UserService {
   constructor(
@@ -36,12 +40,24 @@ export class UserService {
    * @param data
    * @returns
    */
-  Regester(data: RegesterDto) {
-    const { name, email, password } = data;
+  async Regester(data: RegesterDto) {
+    const { name, email, password, role } = data;
+    const foundUser = await this.userRepo.findOne({ where: { email } });
+    console.log(foundUser);
+    if (foundUser) throw new BadRequestException('invalid email or password');
     const salt = bcrypt.genSaltSync(10);
     const hash = bcrypt.hashSync(password, salt);
-    const newUser = this.userRepo.create({ name, email, password: hash });
+    const newUser = this.userRepo.create({ name, email, password: hash, role });
 
     return this.userRepo.save(newUser);
+  }
+
+  async getCurentUser(user: JwtPayload) {
+    const { id } = user;
+    const foundUser = await this.userRepo.findOne({ where: { id } });
+    return foundUser;
+  }
+  getAll() {
+    return this.userRepo.find();
   }
 }
